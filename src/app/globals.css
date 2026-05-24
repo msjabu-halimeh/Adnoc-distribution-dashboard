@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+  background-image: radial-gradient(circle at top left, rgba(29, 155, 200, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(11, 31, 58, 0.03), rgba(11, 31, 58, 0));
+}
+
+::selection {
+  @apply bg-adnoc-teal/40 text-slate-950;
+}
+
+input[type='file']::file-selector-button {
+  @apply border-0 bg-adnoc-navy px-4 py-2 rounded-md text-white mr-3 cursor-pointer;
+}
