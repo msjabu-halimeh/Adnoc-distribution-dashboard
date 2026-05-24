@@ -159,15 +159,23 @@ export default function Home() {
         <section className="overflow-hidden rounded-[28px] border border-white/70 bg-gradient-to-br from-adnoc-navy via-slate-900 to-adnoc-teal p-8 text-white shadow-glow">
           <div className="flex flex-wrap items-start justify-between gap-6">
             <div className="max-w-3xl space-y-4">
+              {/* ADNOC Distribution logo — white background so the blue wordmark reads on dark */}
+              <div className="inline-block rounded-2xl bg-white px-5 py-3 shadow-md">
+                <img
+                  src="/adnoc-distribution-logo.svg"
+                  alt="ADNOC Distribution"
+                  className="h-10 w-auto"
+                />
+              </div>
               <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-sm text-slate-100">
                 <Sparkles className="h-4 w-4" />
-                ADNOC Distribution MVP
+                Car Wash Performance · 2026
               </div>
               <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                Upload sales data and compare station performance across years.
+                Analyze 2026 station performance against the previous year.
               </h1>
               <p className="text-sm leading-7 text-slate-100/90 sm:text-base">
-                This MVP analyzes your XLS file, compares the selected period against the previous year, highlights underperforming stations, and displays a Revenue Trends line chart for decision-making.
+                Upload your sales workbook to compare 2026 revenue and transaction volume station-by-station against 2025, surface underperformers, and visualize monthly trends side-by-side.
               </p>
             </div>
 
