@@ -139,18 +139,45 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const workbook = XLSX.read(buffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][];
 
-    if (!rows.length) {
-      return NextResponse.json({ error: 'The spreadsheet is empty.' }, { status: 400 });
+    // Read EVERY sheet so workbooks with one sheet per year (e.g. "2023" and "2024"
+    // tabs) are fully ingested before the year-split logic runs.
+    const parsedRows: Array<{ station: string; date: Date; revenue: number; transactions: number }> = [];
+    let headers: string[] = [];
+    let headerMap = new Map<string, string>();
+
+    for (const sheetName of workbook.SheetNames) {
+      const worksheet = workbook.Sheets[sheetName];
+      const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][];
+      if (!rawRows.length) continue;
+
+      const sheetHeaders = rawRows[0].map((h) => String(h));
+      const sheetHeaderMap = parseHeaderMap(sheetHeaders);
+
+      // Skip sheets that don't have the required columns (e.g. summary/pivot tabs).
+      if (!sheetHeaderMap.has('station') || !sheetHeaderMap.has('date') || !sheetHeaderMap.has('revenue')) {
+        continue;
+      }
+
+      // Use the first valid sheet's headers for the response mapping field.
+      if (!headers.length) {
+        headers = sheetHeaders;
+        headerMap = sheetHeaderMap;
+      }
+
+      for (const row of rawRows.slice(1)) {
+        const station = String(row[Number(sheetHeaderMap.get('station'))] || '').trim();
+        const date = parseDate(row[Number(sheetHeaderMap.get('date'))]);
+        const revenue = parseNumber(row[Number(sheetHeaderMap.get('revenue'))]);
+        const transactions = sheetHeaderMap.has('transactions')
+          ? parseNumber(row[Number(sheetHeaderMap.get('transactions'))])
+          : 0;
+        if (!station || !date) continue;
+        parsedRows.push({ station, date, revenue, transactions });
+      }
     }
 
-    const headers = rows[0].map((header) => String(header));
-    const headerMap = parseHeaderMap(headers);
-
-    if (!headerMap.has('station') || !headerMap.has('date') || !headerMap.has('revenue')) {
+    if (!headers.length) {
       return NextResponse.json(
         {
           error:
@@ -159,26 +186,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    const parsedRows = rows.slice(1).reduce<Array<{ station: string; date: Date; revenue: number; transactions: number }>>((acc, row) => {
-      const station = String(row[Number(headerMap.get('station'))] || '').trim();
-      const date = parseDate(row[Number(headerMap.get('date'))]);
-      const revenue = parseNumber(row[Number(headerMap.get('revenue'))]);
-      const transactions = headerMap.has('transactions') ? parseNumber(row[Number(headerMap.get('transactions'))]) : 0;
-
-      if (!station || !date) {
-        return acc;
-      }
-
-      acc.push({
-        station,
-        date,
-        revenue,
-        transactions,
-      });
-
-      return acc;
-    }, []);
 
     if (!parsedRows.length) {
       return NextResponse.json({ error: 'No usable rows were found in the spreadsheet.' }, { status: 400 });
