@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { BarChart3, CalendarRange, Download, TrendingUp, AlertTriangle, Sparkles } from 'lucide-react';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 type SourceRow = {
   station: string;
@@ -284,11 +284,19 @@ export default function Home() {
                   <XAxis dataKey="month" stroke="#0B1F3A" />
                   <YAxis stroke="#0B1F3A" tickFormatter={(value) => `AED ${value / 1000}k`} />
                   <Tooltip
-                    formatter={(value: number) => [formatCurrency(value), '']}
+                    formatter={(value: number, name: string) => [
+                      formatCurrency(value),
+                      name === 'current' ? result.currentPeriodLabel : result.previousPeriodLabel,
+                    ]}
                     contentStyle={{ borderRadius: 16, borderColor: '#dce4ec' }}
                   />
-                  <Line type="monotone" dataKey="current" stroke="#1D9BC8" strokeWidth={3} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="previous" stroke="#F4C95D" strokeWidth={2} dot={{ r: 3 }} />
+                  <Legend
+                    formatter={(value) =>
+                      value === 'current' ? result.currentPeriodLabel : result.previousPeriodLabel
+                    }
+                  />
+                  <Line type="monotone" dataKey="current" name="current" stroke="#1D9BC8" strokeWidth={3} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="previous" name="previous" stroke="#F4C95D" strokeWidth={2} dot={{ r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (

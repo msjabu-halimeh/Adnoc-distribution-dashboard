@@ -245,27 +245,33 @@ export async function POST(req: NextRequest) {
       };
     }).sort((a, b) => a.priority.localeCompare(b.priority));
 
-    const monthlyBuckets = new Map<string, { current: number; previous: number }>();
+    // Pre-populate in calendar order so the X-axis always runs Jan → Dec,
+    // regardless of which month the data starts or ends in.
+    const MONTH_ORDER = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyBuckets = new Map<string, { current: number; previous: number }>(
+      MONTH_ORDER.map((m) => [m, { current: 0, previous: 0 }])
+    );
 
     for (const row of currentRows) {
       const key = monthLabel(row.date);
-      const bucket = monthlyBuckets.get(key) || { current: 0, previous: 0 };
-      bucket.current += row.revenue;
-      monthlyBuckets.set(key, bucket);
+      const bucket = monthlyBuckets.get(key);
+      if (bucket) bucket.current += row.revenue;
     }
 
     for (const row of previousRows) {
       const key = monthLabel(row.date);
-      const bucket = monthlyBuckets.get(key) || { current: 0, previous: 0 };
-      bucket.previous += row.revenue;
-      monthlyBuckets.set(key, bucket);
+      const bucket = monthlyBuckets.get(key);
+      if (bucket) bucket.previous += row.revenue;
     }
 
-    const revenueTrend = Array.from(monthlyBuckets.entries()).map(([month, values]) => ({
-      month,
-      current: values.current,
-      previous: values.previous,
-    }));
+    // Emit months in Jan-Dec order; skip months with no data in either year.
+    const revenueTrend = MONTH_ORDER
+      .map((month) => ({
+        month,
+        current: monthlyBuckets.get(month)!.current,
+        previous: monthlyBuckets.get(month)!.previous,
+      }))
+      .filter((entry) => entry.current > 0 || entry.previous > 0);
 
     const overallCurrentRevenue = currentRows.reduce((sum, row) => sum + row.revenue, 0);
     const overallCurrentTransactions = currentRows.reduce((sum, row) => sum + row.transactions, 0);
